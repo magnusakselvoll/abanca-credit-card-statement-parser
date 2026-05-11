@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/AbancaCardParser.Core/AbancaCardParser.Core.csproj" />
+  <Project Path="src/AbancaCardParser.Cli/AbancaCardParser.Cli.csproj" />
+  <Project Path="tests/AbancaCardParser.Core.Tests/AbancaCardParser.Core.Tests.csproj" />
+</Solution>
