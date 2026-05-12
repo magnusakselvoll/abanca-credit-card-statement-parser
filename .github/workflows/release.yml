@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive version tags from git tag
+        id: tags
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. v0.1.0
+          VERSION="${TAG#v}"                 # e.g. 0.1.0
+          MINOR="${VERSION%.*}"              # e.g. 0.1
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR"     >> "$GITHUB_OUTPUT"
+          echo "tags=$VERSION;$MINOR;latest" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        run: |
+          dotnet publish src/AbancaCardParser.Cli \
+            -c Release \
+            /t:PublishContainer \
+            /p:ContainerRegistry=ghcr.io \
+            "/p:ContainerImageTags=${{ steps.tags.outputs.tags }}"
