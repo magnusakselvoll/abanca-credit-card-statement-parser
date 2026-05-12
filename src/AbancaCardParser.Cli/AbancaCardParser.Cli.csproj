@@ -9,6 +9,7 @@
     <ContainerRepository>magnusakselvoll/abanca-credit-card-statement-parser</ContainerRepository>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/runtime:10.0</ContainerBaseImage>
     <ContainerUser>1000</ContainerUser>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
     <ContainerRuntimeIdentifiers>linux-x64;linux-arm64</ContainerRuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
