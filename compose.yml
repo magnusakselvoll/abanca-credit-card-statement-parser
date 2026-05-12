@@ -1,0 +1,13 @@
+services:
+  parser:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    working_dir: /src
+    volumes:
+      - .:/src
+      - ./input:/data/input:ro
+      - ./output:/data/output
+    environment:
+      AbancaCardParser__InputDir: /data/input
+      AbancaCardParser__OutputDir: /data/output
+      AbancaCardParser__LogDir: /data/output
+    command: dotnet run --project src/AbancaCardParser.Cli
