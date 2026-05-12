@@ -3,6 +3,8 @@
 
 # Local test data (may contain real bank data — never commit)
 local-test-data/
+input/
+output/
 
 # macOS
 .DS_Store
