@@ -26,20 +26,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Derive version tags from git tag
+      - name: Derive version from git tag
         id: tags
         run: |
-          TAG="${GITHUB_REF_NAME}"          # e.g. v0.1.0
-          VERSION="${TAG#v}"                 # e.g. 0.1.0
-          MINOR="${VERSION%.*}"              # e.g. 0.1
+          TAG="${GITHUB_REF_NAME}"     # e.g. v0.1.1
+          VERSION="${TAG#v}"            # e.g. 0.1.1
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "minor=$MINOR"     >> "$GITHUB_OUTPUT"
-          echo "tags=$VERSION;$MINOR;latest" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push image
+      - name: Push versioned image
         run: |
           dotnet publish src/AbancaCardParser.Cli \
             -c Release \
             /t:PublishContainer \
             /p:ContainerRegistry=ghcr.io \
-            "/p:ContainerImageTags=${{ steps.tags.outputs.tags }}"
+            /p:ContainerImageTag=${{ steps.tags.outputs.version }}
+
+      - name: Push latest image
+        run: |
+          dotnet publish src/AbancaCardParser.Cli \
+            -c Release \
+            /t:PublishContainer \
+            /p:ContainerRegistry=ghcr.io \
+            /p:ContainerImageTag=latest
