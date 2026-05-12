@@ -1,7 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <Version>0.1.0</Version>
+    <Authors>Magnus Akselvoll</Authors>
+    <Description>Converts Abanca VISA credit card PDF statements to CSV files in the Abanca bank-account format.</Description>
+    <RepositoryUrl>https://github.com/magnusakselvoll/abanca-credit-card-statement-parser</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ContainerRepository>magnusakselvoll/abanca-credit-card-statement-parser</ContainerRepository>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/runtime:10.0</ContainerBaseImage>
+    <ContainerUser>1000</ContainerUser>
+    <ContainerRuntimeIdentifiers>linux-x64;linux-arm64</ContainerRuntimeIdentifiers>
   </PropertyGroup>
+  <ItemGroup>
+    <ContainerEnvironmentVariable Include="AbancaCardParser__InputDir" Value="/data/input" />
+    <ContainerEnvironmentVariable Include="AbancaCardParser__OutputDir" Value="/data/output" />
+    <ContainerEnvironmentVariable Include="AbancaCardParser__LogDir" Value="/data/output" />
+    <ContainerLabel Include="org.opencontainers.image.source" Value="https://github.com/magnusakselvoll/abanca-credit-card-statement-parser" />
+    <ContainerLabel Include="org.opencontainers.image.title" Value="abanca-credit-card-statement-parser" />
+    <ContainerLabel Include="org.opencontainers.image.description" Value="Converts Abanca VISA credit card PDFs to CSV." />
+    <ContainerLabel Include="org.opencontainers.image.licenses" Value="MIT" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />

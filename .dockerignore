@@ -1,8 +1,0 @@
-local-test-data/
-.DS_Store
-**/[Bb]in/
-**/[Oo]bj/
-.vs/
-.git/
-*.user
-*.log
