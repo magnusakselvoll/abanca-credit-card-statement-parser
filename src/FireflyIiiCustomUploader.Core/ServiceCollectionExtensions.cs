@@ -29,7 +29,10 @@ public static class ServiceCollectionExtensions
             client.BaseAddress = new Uri(opts.FireflyIiiUrl.TrimEnd('/') + '/');
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", opts.FireflyIiiToken);
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
         })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false })
         .AddResilienceHandler("fireflyiii", ConfigureResiliencePipeline);
 
         services.AddSingleton<IStatementParser, AbancaStatementParser>();

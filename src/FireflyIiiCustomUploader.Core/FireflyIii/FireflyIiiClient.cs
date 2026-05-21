@@ -77,9 +77,13 @@ public sealed class FireflyIiiClient : IFireflyIiiClient
 
         if (!response.IsSuccessStatusCode)
         {
+            var statusInt = (int)response.StatusCode;
+            var location = response.Headers.Location?.ToString();
+            var redirectSuffix = location is not null ? $" Redirected to: {location}" : string.Empty;
             var preview = body.Length > 300 ? body[..300] : body;
-            throw new InvalidOperationException(
-                $"Firefly III returned HTTP {(int)response.StatusCode} {response.ReasonPhrase}. Body: {preview}");
+            var message = $"Firefly III returned HTTP {statusInt} {response.ReasonPhrase} for {url}.{redirectSuffix} Body: {preview}";
+            _logger.LogWarning("Firefly III request failed: {StatusCode} for {Url}{Redirect}", statusInt, url, redirectSuffix);
+            throw new InvalidOperationException(message);
         }
 
         try
@@ -90,8 +94,9 @@ public sealed class FireflyIiiClient : IFireflyIiiClient
         catch (JsonException ex)
         {
             var preview = body.Length > 300 ? body[..300] : body;
-            throw new InvalidOperationException(
-                $"Firefly III returned non-JSON content (check URL and token). Response starts with: {preview}", ex);
+            var message = $"Firefly III returned non-JSON content for {url} (check URL and token). Response starts with: {preview}";
+            _logger.LogWarning("Firefly III returned non-JSON for {Url}", url);
+            throw new InvalidOperationException(message, ex);
         }
     }
 
