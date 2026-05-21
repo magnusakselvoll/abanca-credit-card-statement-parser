@@ -129,11 +129,55 @@ public class FireflyIiiClientTests
         }
     }
 
+    [TestMethod]
+    public async Task GetAssetAccountsAsync_NonSuccessStatus_ThrowsWithStatusCode()
+    {
+        var handler = new FixedResponseHandler(
+            HttpStatusCode.Unauthorized, "application/json", "{\"message\":\"Unauthenticated.\"}");
+        using var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") };
+        var sut = new FireflyIiiClient(client, NullLogger<FireflyIiiClient>.Instance);
+
+        var ex = default(Exception);
+        try { await sut.GetAssetAccountsAsync(); } catch (InvalidOperationException e) { ex = e; }
+
+        Assert.IsNotNull(ex);
+        Assert.IsTrue(ex.Message.Contains("401"), $"Expected '401' in: {ex.Message}");
+    }
+
+    [TestMethod]
+    public async Task GetAssetAccountsAsync_HtmlResponse_ThrowsWithBodyPreview()
+    {
+        var html = "<!DOCTYPE html><html><body>Login</body></html>";
+        var handler = new FixedResponseHandler(HttpStatusCode.OK, "text/html", html);
+        using var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") };
+        var sut = new FireflyIiiClient(client, NullLogger<FireflyIiiClient>.Instance);
+
+        var ex = default(Exception);
+        try { await sut.GetAssetAccountsAsync(); } catch (InvalidOperationException e) { ex = e; }
+
+        Assert.IsNotNull(ex);
+        Assert.IsTrue(ex.Message.Contains("<!DOCTYPE"), $"Expected body preview in: {ex.Message}");
+    }
+
     private sealed class CapturingHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
         : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(handler(request));
+    }
+
+    private sealed class FixedResponseHandler(HttpStatusCode status, string contentType, string body)
+        : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = new HttpResponseMessage(status)
+            {
+                Content = new StringContent(body, System.Text.Encoding.UTF8, contentType),
+            };
+            return Task.FromResult(response);
+        }
     }
 }
