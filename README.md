@@ -9,7 +9,10 @@ Web app that parses credit-card statement PDFs, lets you review the parsed trans
 
 | Format | Description |
 |--------|-------------|
-| Abanca VISA Clásica | Spanish-locale PDF statements in the OpenText Exstream format (see [docs/pdf-format.md](docs/pdf-format.md)) |
+| Abanca VISA Clásica | Spanish-locale PDF statements in the OpenText Exstream format |
+| Advanzia card | PDF exports from the Advanzia card portal; Advanzia's category is stored in the Firefly III notes field |
+
+See [docs/pdf-format.md](docs/pdf-format.md) for the detailed format specifications.
 
 Adding a new format is straightforward — see [Adding a new statement format](#adding-a-new-statement-format) below.
 
@@ -98,7 +101,7 @@ The registry tries parsers in registration order and uses the first match.
 
 ## Formats
 
-- [PDF input format (Abanca)](docs/pdf-format.md)
+- [PDF input formats (Abanca, Advanzia)](docs/pdf-format.md)
 - [CSV export format](docs/csv-format.md)
 
 ## License

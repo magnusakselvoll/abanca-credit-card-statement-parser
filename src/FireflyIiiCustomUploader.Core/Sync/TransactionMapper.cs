@@ -28,6 +28,13 @@ public static class TransactionMapper
             SourceName: tx.IsDebit ? assetAccountName : null,
             DestinationName: tx.IsDebit ? null : assetAccountName,
             Tags: [runTag],
-            Notes: null);
+            Notes: BuildNotes(tx));
+    }
+
+    private static string? BuildNotes(CardTransaction tx)
+    {
+        if (string.IsNullOrEmpty(tx.Category))
+            return null;
+        return $"Category: {tx.Category}";
     }
 }

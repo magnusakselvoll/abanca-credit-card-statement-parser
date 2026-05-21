@@ -4,4 +4,5 @@ public record CardTransaction(
     DateOnly Date,
     string Description,
     decimal Amount,
-    bool IsDebit);
+    bool IsDebit,
+    string? Category = null);
