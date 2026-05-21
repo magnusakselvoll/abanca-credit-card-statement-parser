@@ -44,9 +44,10 @@ internal static class PreviewEndpoints
             .Select(v => int.Parse(v!))
             .ToHashSet();
 
-        // Re-validate: only allow indices whose plan decision is Create.
+        // Re-validate: only allow indices whose plan decision permits import.
         var allowedIndices = includedIndices
-            .Where(i => i >= 0 && i < plan.Items.Count && plan.Items[i].Decision == UploadDecision.Create)
+            .Where(i => i >= 0 && i < plan.Items.Count &&
+                        plan.Items[i].Decision is UploadDecision.Create or UploadDecision.SkipDuplicate)
             .ToHashSet();
 
         UploadResult result;

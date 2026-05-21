@@ -33,7 +33,6 @@ internal static class Html
             .actions { margin-top: 1.5rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
             .tx-skip { color: #888; }
             .tx-create { }
-            .tx-amort { color: #856404; background: #fff3cd; }
             code { background: #f5f5f5; padding: .1rem .3rem; border-radius: 3px; }
           </style>
         </head>
@@ -92,12 +91,10 @@ internal static class Html
 
         var toCreate = plan.Items.Count(i => i.Decision == UploadDecision.Create);
         var duplicates = plan.Items.Count(i => i.Decision == UploadDecision.SkipDuplicate);
-        var amortizations = plan.Items.Count(i => i.Decision == UploadDecision.SkipAmortization);
 
         sb.Append($"<p>Account: <strong>{Encode(plan.AssetAccountName)}</strong> &mdash; ");
         sb.Append($"<strong>{toCreate}</strong> to create");
         if (duplicates > 0) sb.Append($", {duplicates} already in Firefly");
-        if (amortizations > 0) sb.Append($", {amortizations} AMORTIZACION DEUDA (skipped — see README)");
         sb.Append("</p>");
 
         if (plan.Items.Count == 0)
@@ -118,8 +115,7 @@ internal static class Html
             var (rowClass, statusText, checkboxAttrs) = item.Decision switch
             {
                 UploadDecision.Create => ("tx-create", "Will import", "checked"),
-                UploadDecision.SkipDuplicate => ("tx-skip", "Already in Firefly", "disabled"),
-                UploadDecision.SkipAmortization => ("tx-amort", "AMORTIZACION — skipped", "disabled"),
+                UploadDecision.SkipDuplicate => ("tx-skip", "Already in Firefly", ""),
                 _ => ("", "Unknown", "disabled"),
             };
             var direction = item.Transaction.IsDebit ? "Debit" : "Credit";
@@ -155,7 +151,6 @@ internal static class Html
         sb.Append($"<tr><td>Created</td><td><strong>{result.Created}</strong></td></tr>");
         sb.Append($"<tr><td>Already in Firefly (skipped)</td><td>{result.SkippedDuplicate}</td></tr>");
         sb.Append($"<tr><td>Excluded by you</td><td>{result.SkippedExcluded}</td></tr>");
-        sb.Append($"<tr><td>AMORTIZACION DEUDA (skipped)</td><td>{result.SkippedAmortization}</td></tr>");
         if (result.Errors > 0)
             sb.Append($"<tr><td><strong>Errors</strong></td><td><strong style=\"color:#dc3545\">{result.Errors}</strong></td></tr>");
         sb.Append("</tbody></table>");

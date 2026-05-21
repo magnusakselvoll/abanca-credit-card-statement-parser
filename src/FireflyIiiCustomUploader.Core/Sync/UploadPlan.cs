@@ -6,7 +6,6 @@ public enum UploadDecision
 {
     Create,
     SkipDuplicate,
-    SkipAmortization,
 }
 
 public record UploadPlanItem(

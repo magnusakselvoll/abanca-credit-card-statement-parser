@@ -91,7 +91,7 @@ Two-project layout:
 
 **Sync**
 - `ExternalIdFactory` — deterministic `external_id = "{formatId}:{sha1(date|amountCents|D/H|normalizedDescription)}"` for idempotency
-- `UploadPlan` / `UploadPlanItem` / `UploadDecision` — plan record with per-item decisions (Create / SkipDuplicate / SkipAmortization)
+- `UploadPlan` / `UploadPlanItem` / `UploadDecision` — plan record with per-item decisions (Create / SkipDuplicate)
 - `UploadPlanner.BuildPlanAsync` — queries Firefly III for existing external_ids in the statement's date range; assigns decisions
 - `UploadExecutor.ExecuteAsync` — creates `Create` items that the user included; stamps each with a run tag; returns `UploadResult`
 - `TransactionMapper.ToTransactionSplit` — maps `CardTransaction` → Firefly `TransactionSplit` (debit=withdrawal, credit=deposit)
@@ -105,10 +105,6 @@ Two-project layout:
 - Year disambiguation: transaction dates use `dd-mm-yy` (2-digit year). The parser scans for the first `dd-mm-yyyy` date in the PDF (e.g., FECHA COBRO on page 1) to derive the century prefix.
 - The `TOTAL OPERACIONES TARJETA` line signals end-of-transactions and provides the stated total for verification. It also serves as the `CanParse` sniff marker for `AbancaStatementParser`.
 
-### AMORTIZACION DEUDA
-
-Lines whose description starts with "AMORTIZACION DEUDA" are card-debt repayment entries. Firefly III models these as transfers between accounts, but the source account is not in the PDF. The planner assigns them `SkipAmortization`; the UI shows them pre-unchecked and disabled so the user is aware they were omitted.
-
 ### Idempotency
 
 `UploadPlanner` always queries Firefly III for existing transactions in the statement's date range on the selected asset account, collecting every `external_id` found. Items whose synthetic `external_id` already exists get `SkipDuplicate`. The submit handler additionally validates that only items with decision `Create` are accepted, so even hand-crafted POSTs cannot force a duplicate.
@@ -117,7 +113,7 @@ Lines whose description starts with "AMORTIZACION DEUDA" are card-debt repayment
 
 1. `GET /` — fetches asset accounts from Firefly III, renders upload form.
 2. `POST /upload` — extracts PDF text, finds parser, parses statement, builds `UploadPlan` (queries Firefly III for dedup), stores in `ReviewState` singleton with a 15-min TTL, redirects to `/preview/{token}`.
-3. `GET /preview/{token}` — renders the transaction table with checkboxes (disabled for SkipDuplicate/SkipAmortization).
+3. `GET /preview/{token}` — renders the transaction table with checkboxes (disabled for SkipDuplicate).
 4. `POST /submit` — reads form, re-validates included indices, calls `UploadExecutor`, renders result page.
 5. `GET /download-csv/{token}` — uses `BankCsvWriter` to produce a downloadable CSV of all parsed transactions.
 

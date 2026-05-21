@@ -1,4 +1,6 @@
+using System.Globalization;
 using FireflyIiiCustomUploader.Core.FireflyIii;
+using FireflyIiiCustomUploader.Core.FireflyIii.Models;
 using FireflyIiiCustomUploader.Core.Models;
 using Microsoft.Extensions.Logging;
 
@@ -31,28 +33,31 @@ public class UploadPlanner
         var existing = await _fireflyClient.GetTransactionsAsync(
             assetAccountId, dateFrom, dateTo, cancellationToken);
 
-        var existingExternalIds = existing
-            .SelectMany(t => t.Attributes.Transactions)
+        var allSplits = existing.SelectMany(t => t.Attributes.Transactions).ToList();
+
+        var existingExternalIds = allSplits
             .Where(s => s.ExternalId is not null)
             .Select(s => s.ExternalId!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        var existingContentKeys = allSplits
+            .Select(ContentKeyFromSplit)
+            .OfType<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         _logger.LogInformation(
             "Building upload plan for {Count} transactions ({From} – {To}). Found {Existing} existing in Firefly III.",
-            statement.Transactions.Count, dateFrom, dateTo, existingExternalIds.Count);
+            statement.Transactions.Count, dateFrom, dateTo, allSplits.Count);
 
         var items = new List<UploadPlanItem>();
         foreach (var tx in statement.Transactions)
         {
             var externalId = ExternalIdFactory.Create(formatId, tx);
+            var contentKey = ExternalIdFactory.ContentKey(tx);
 
-            UploadDecision decision;
-            if (IsAmortizacion(tx))
-                decision = UploadDecision.SkipAmortization;
-            else if (existingExternalIds.Contains(externalId))
-                decision = UploadDecision.SkipDuplicate;
-            else
-                decision = UploadDecision.Create;
+            var decision = (existingExternalIds.Contains(externalId) || existingContentKeys.Contains(contentKey))
+                ? UploadDecision.SkipDuplicate
+                : UploadDecision.Create;
 
             items.Add(new UploadPlanItem(tx, decision, externalId));
         }
@@ -60,6 +65,11 @@ public class UploadPlanner
         return new UploadPlan(formatId, assetAccountId, assetAccountName, items);
     }
 
-    private static bool IsAmortizacion(CardTransaction tx) =>
-        tx.Description.StartsWith("AMORTIZACION DEUDA", StringComparison.OrdinalIgnoreCase);
+    private static string? ContentKeyFromSplit(TransactionSplitAttributes split)
+    {
+        if (!decimal.TryParse(split.Amount, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount))
+            return null;
+        var amountCents = (long)(amount * 100);
+        return $"{split.Date:yyyy-MM-dd}|{amountCents}|{ExternalIdFactory.NormalizeDescription(split.Description ?? "")}";
+    }
 }
