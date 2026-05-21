@@ -138,6 +138,10 @@ The registry tries parsers in registration order.
 - **Testing**: MSTest
 - **Deployment**: Docker via .NET SDK container publish (`dotnet publish -t:PublishContainer`) — no Dockerfile needed; uses `mcr.microsoft.com/dotnet/aspnet:10.0` base image
 
+## Simplicity Policy
+
+Prefer the simplest solution that works today. Do not guard against scenarios that are clearly out of scope (e.g. year-2100 date edge cases, hypothetical scale requirements). If the deployment context makes an assumption safe, use it. When you encounter an over-engineered pattern in existing code, flag it rather than copy it.
+
 ## Dependency Policy
 
 Minimize external dependencies. Only add well-established, widely-used libraries when genuinely needed.
