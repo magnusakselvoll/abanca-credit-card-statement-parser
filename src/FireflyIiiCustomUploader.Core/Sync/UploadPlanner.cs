@@ -30,8 +30,12 @@ public class UploadPlanner
         var dateFrom = statement.Transactions.Min(t => t.Date);
         var dateTo = statement.Transactions.Max(t => t.Date);
 
+        // Firefly III's range filter requires start < end (equal dates -> HTTP 422). A statement
+        // whose transactions all fall on one day collapses the range, so widen the end by a day.
+        var queryTo = dateTo > dateFrom ? dateTo : dateFrom.AddDays(1);
+
         var existing = await _fireflyClient.GetTransactionsAsync(
-            assetAccountId, dateFrom, dateTo, cancellationToken);
+            assetAccountId, dateFrom, queryTo, cancellationToken);
 
         var allSplits = existing.SelectMany(t => t.Attributes.Transactions).ToList();
 
