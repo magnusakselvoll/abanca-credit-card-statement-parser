@@ -29,9 +29,8 @@ public sealed class FireflyIiiClient : IFireflyIiiClient
 
         while (true)
         {
-            var response = await _httpClient.GetFromJsonAsync<PaginatedResponse<Account>>(
-                $"api/v1/accounts?type=asset&page={page}", JsonOptions, cancellationToken)
-                ?? throw new InvalidOperationException("Firefly III returned null accounts response.");
+            var response = await GetJsonAsync<PaginatedResponse<Account>>(
+                $"api/v1/accounts?type=asset&page={page}", cancellationToken);
 
             all.AddRange(response.Data);
 
@@ -56,10 +55,9 @@ public sealed class FireflyIiiClient : IFireflyIiiClient
 
         while (true)
         {
-            var response = await _httpClient.GetFromJsonAsync<PaginatedResponse<Transaction>>(
+            var response = await GetJsonAsync<PaginatedResponse<Transaction>>(
                 $"api/v1/accounts/{accountId}/transactions?start={dateFrom:yyyy-MM-dd}&end={dateTo:yyyy-MM-dd}&page={page}",
-                JsonOptions, cancellationToken)
-                ?? throw new InvalidOperationException($"Firefly III returned null transactions for account {accountId}.");
+                cancellationToken);
 
             all.AddRange(response.Data);
 
@@ -70,6 +68,31 @@ public sealed class FireflyIiiClient : IFireflyIiiClient
         }
 
         return all;
+    }
+
+    private async Task<T> GetJsonAsync<T>(string url, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var preview = body.Length > 300 ? body[..300] : body;
+            throw new InvalidOperationException(
+                $"Firefly III returned HTTP {(int)response.StatusCode} {response.ReasonPhrase}. Body: {preview}");
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(body, JsonOptions)
+                ?? throw new InvalidOperationException("Firefly III returned an empty response body.");
+        }
+        catch (JsonException ex)
+        {
+            var preview = body.Length > 300 ? body[..300] : body;
+            throw new InvalidOperationException(
+                $"Firefly III returned non-JSON content (check URL and token). Response starts with: {preview}", ex);
+        }
     }
 
     public async Task CreateTransactionAsync(TransactionStore transaction, CancellationToken cancellationToken = default)
