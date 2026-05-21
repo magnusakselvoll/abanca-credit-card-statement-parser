@@ -4,6 +4,7 @@ using FireflyIiiCustomUploader.Core.FireflyIii;
 using FireflyIiiCustomUploader.Core.Options;
 using FireflyIiiCustomUploader.Core.Parsing;
 using FireflyIiiCustomUploader.Core.Parsing.Abanca;
+using FireflyIiiCustomUploader.Core.Parsing.Advanzia;
 using FireflyIiiCustomUploader.Core.Sync;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,7 @@ public static class ServiceCollectionExtensions
         .AddResilienceHandler("fireflyiii", ConfigureResiliencePipeline);
 
         services.AddSingleton<IStatementParser, AbancaStatementParser>();
+        services.AddSingleton<IStatementParser, AdvanziaStatementParser>();
         services.AddSingleton<StatementParserRegistry>();
         services.AddTransient<UploadPlanner>();
         services.AddTransient<UploadExecutor>();

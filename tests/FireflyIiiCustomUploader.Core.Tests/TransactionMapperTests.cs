@@ -84,4 +84,19 @@ public class TransactionMapperTests
         var split = TransactionMapper.ToTransactionSplit(Debit, "ext-1", "My Card", "run-tag");
         Assert.AreEqual(new DateOnly(2025, 4, 15), split.Date);
     }
+
+    [TestMethod]
+    public void ToTransactionSplit_WithCategory_NotesContainsLabel()
+    {
+        var tx = new CardTransaction(new DateOnly(2025, 4, 15), "ACME STORE", 42.50m, IsDebit: true, Category: "groceries");
+        var split = TransactionMapper.ToTransactionSplit(tx, "ext-1", "My Card", "run-tag");
+        Assert.AreEqual("Category: groceries", split.Notes);
+    }
+
+    [TestMethod]
+    public void ToTransactionSplit_WithoutCategory_NotesIsNull()
+    {
+        var split = TransactionMapper.ToTransactionSplit(Debit, "ext-1", "My Card", "run-tag");
+        Assert.IsNull(split.Notes);
+    }
 }

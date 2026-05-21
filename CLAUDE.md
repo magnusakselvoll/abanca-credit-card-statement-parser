@@ -75,7 +75,7 @@ Two-project layout:
 ### Key types (in Core)
 
 **Models**
-- `CardTransaction` — date, description, amount, IsDebit
+- `CardTransaction` — date, description, amount, IsDebit, Category (optional; populated by parsers that have category data)
 - `CardStatement` — list of transactions + optional stated total from TOTAL OPERACIONES TARJETA line
 
 **Parsing**
@@ -84,6 +84,7 @@ Two-project layout:
 - `IStatementParser` — `{ FormatId, CanParse(lines), Parse(lines) }` — one implementation per bank/format
 - `StatementParserRegistry` — tries each registered parser's `CanParse`; returns the first match
 - `Parsing/Abanca/AbancaStatementParser` — parses Abanca VISA Clásica statements; sniffs on "TOTAL OPERACIONES TARJETA"
+- `Parsing/Advanzia/AdvanziaStatementParser` — parses Advanzia card exports; sniffs on column header containing "Counterparty" and "Category"; `FormatId = "advanzia"`; negative amounts = debit, positive = credit; category token written to Firefly `notes` as `"Category: <value>"`
 
 **Firefly III**
 - `IFireflyIiiClient` / `FireflyIiiClient` — paginated GET accounts, GET transactions, POST transaction
@@ -94,7 +95,7 @@ Two-project layout:
 - `UploadPlan` / `UploadPlanItem` / `UploadDecision` — plan record with per-item decisions (Create / SkipDuplicate)
 - `UploadPlanner.BuildPlanAsync` — queries Firefly III for existing external_ids in the statement's date range; assigns decisions
 - `UploadExecutor.ExecuteAsync` — creates `Create` items that the user included; stamps each with a run tag; returns `UploadResult`
-- `TransactionMapper.ToTransactionSplit` — maps `CardTransaction` → Firefly `TransactionSplit` (debit=withdrawal, credit=deposit)
+- `TransactionMapper.ToTransactionSplit` — maps `CardTransaction` → Firefly `TransactionSplit` (debit=withdrawal, credit=deposit); populates `notes` from `CardTransaction.Category` as `"Category: <value>"` when set
 
 **Options**
 - `FireflyIiiCustomUploaderOptions` — FireflyIiiUrl, FireflyIiiToken, WebListenUrl, RunTagPrefix; bound from config section `FireflyIiiCustomUploader`
