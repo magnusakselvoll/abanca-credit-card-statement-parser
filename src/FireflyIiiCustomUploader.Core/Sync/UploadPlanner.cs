@@ -46,13 +46,9 @@ public class UploadPlanner
         {
             var externalId = ExternalIdFactory.Create(formatId, tx);
 
-            UploadDecision decision;
-            if (IsAmortizacion(tx))
-                decision = UploadDecision.SkipAmortization;
-            else if (existingExternalIds.Contains(externalId))
-                decision = UploadDecision.SkipDuplicate;
-            else
-                decision = UploadDecision.Create;
+            var decision = existingExternalIds.Contains(externalId)
+                ? UploadDecision.SkipDuplicate
+                : UploadDecision.Create;
 
             items.Add(new UploadPlanItem(tx, decision, externalId));
         }
@@ -60,6 +56,4 @@ public class UploadPlanner
         return new UploadPlan(formatId, assetAccountId, assetAccountName, items);
     }
 
-    private static bool IsAmortizacion(CardTransaction tx) =>
-        tx.Description.StartsWith("AMORTIZACION DEUDA", StringComparison.OrdinalIgnoreCase);
 }

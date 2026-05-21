@@ -9,7 +9,6 @@ namespace FireflyIiiCustomUploader.Core.Sync;
 public record UploadResult(
     int Created,
     int SkippedDuplicate,
-    int SkippedAmortization,
     int SkippedExcluded,
     int Errors,
     string RunTag);
@@ -36,7 +35,7 @@ public class UploadExecutor
         CancellationToken cancellationToken = default)
     {
         var runTag = $"{_options.RunTagPrefix}-{DateTimeOffset.UtcNow:yyyy-MM-ddTHH:mm:ssZ}";
-        int created = 0, skippedDuplicate = 0, skippedAmortization = 0, skippedExcluded = 0, errors = 0;
+        int created = 0, skippedDuplicate = 0, skippedExcluded = 0, errors = 0;
 
         for (int i = 0; i < plan.Items.Count; i++)
         {
@@ -45,11 +44,6 @@ public class UploadExecutor
             if (item.Decision == UploadDecision.SkipDuplicate)
             {
                 skippedDuplicate++;
-                continue;
-            }
-            if (item.Decision == UploadDecision.SkipAmortization)
-            {
-                skippedAmortization++;
                 continue;
             }
             if (!includedIndices.Contains(i))
@@ -75,9 +69,9 @@ public class UploadExecutor
         }
 
         _logger.LogInformation(
-            "Upload complete. Created: {Created}, Duplicates: {Dup}, Amortization: {Amort}, Excluded: {Excl}, Errors: {Err}. Run tag: {Tag}",
-            created, skippedDuplicate, skippedAmortization, skippedExcluded, errors, runTag);
+            "Upload complete. Created: {Created}, Duplicates: {Dup}, Excluded: {Excl}, Errors: {Err}. Run tag: {Tag}",
+            created, skippedDuplicate, skippedExcluded, errors, runTag);
 
-        return new UploadResult(created, skippedDuplicate, skippedAmortization, skippedExcluded, errors, runTag);
+        return new UploadResult(created, skippedDuplicate, skippedExcluded, errors, runTag);
     }
 }
