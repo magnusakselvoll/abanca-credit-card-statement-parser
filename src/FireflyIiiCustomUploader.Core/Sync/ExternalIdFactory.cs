@@ -17,7 +17,13 @@ public static class ExternalIdFactory
         return $"{formatId}:{hash}";
     }
 
-    private static string NormalizeDescription(string description) =>
+    public static string ContentKey(CardTransaction transaction)
+    {
+        var amountCents = (long)(transaction.Amount * 100);
+        return $"{transaction.Date:yyyy-MM-dd}|{amountCents}|{NormalizeDescription(transaction.Description)}";
+    }
+
+    internal static string NormalizeDescription(string description) =>
         string.Join(" ", description.Trim().Split((char[])null!, StringSplitOptions.RemoveEmptyEntries))
               .ToUpperInvariant();
 }
