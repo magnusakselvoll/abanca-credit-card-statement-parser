@@ -8,7 +8,7 @@ public class AbancaStatementParserTests
 {
     private readonly AbancaStatementParser _parser = new();
 
-    // Synthetic header lines that appear on every statement page (contain 4-digit year anchor).
+    // Synthetic header lines that appear on every statement page.
     private static readonly string[] HeaderLines =
     [
         "2 15-05-2025 20-04-2025 A 19-05-2025 45072-1234",
@@ -79,9 +79,9 @@ public class AbancaStatementParserTests
     }
 
     [TestMethod]
-    public void Parse_YearFromAnchor_DecemberBeforeAnchorYear()
+    public void Parse_TwoDigitYear_ExpandedToCurrentCentury()
     {
-        // Anchor year is 2025 (from header). Dec transaction has yy=24, so year=2024.
+        // A statement spanning Dec/Jan — both years still resolve correctly within the current century.
         var lines = new List<string>
         {
             "2 15-01-2025 20-12-2024 A 19-01-2025 45072-1234",

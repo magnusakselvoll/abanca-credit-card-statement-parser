@@ -103,7 +103,7 @@ Two-project layout:
 ### PDF parsing notes
 
 - Only data from inside the PDF is used — filenames are never parsed.
-- Year disambiguation: transaction dates use `dd-mm-yy` (2-digit year). The parser scans for the first `dd-mm-yyyy` date in the PDF (e.g., FECHA COBRO on page 1) to derive the century prefix.
+- Year expansion: transaction dates use `dd-mm-yy` (2-digit year), expanded to the current century (e.g. `26 → 2026`). This handles the common December → January boundary within a single century.
 - The `TOTAL OPERACIONES TARJETA` line signals end-of-transactions and provides the stated total for verification. It also serves as the `CanParse` sniff marker for `AbancaStatementParser`.
 
 ### Idempotency
@@ -137,6 +137,10 @@ The registry tries parsers in registration order.
 - **Logging**: Microsoft.Extensions.Logging (console, from ASP.NET Core host)
 - **Testing**: MSTest
 - **Deployment**: Docker via .NET SDK container publish (`dotnet publish -t:PublishContainer`) — no Dockerfile needed; uses `mcr.microsoft.com/dotnet/aspnet:10.0` base image
+
+## Simplicity Policy
+
+Prefer the simplest solution that works today. Do not guard against scenarios that are clearly out of scope (e.g. year-2100 date edge cases, hypothetical scale requirements). If the deployment context makes an assumption safe, use it. When you encounter an over-engineered pattern in existing code, flag it rather than copy it.
 
 ## Dependency Policy
 

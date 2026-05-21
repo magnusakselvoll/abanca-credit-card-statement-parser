@@ -74,7 +74,7 @@ Examples: `9,99` · `135,94` · `1.088,15`
 - Page 1 header dates: `dd-MM-yyyy` (4-digit year, e.g. `31-03-2026`)
 - Transaction row dates: `dd-MM-yy` (2-digit year, e.g. `18-02-26`)
 
-The parser uses the first 4-digit-year date found in the PDF as a century anchor to expand 2-digit years. This correctly handles statements that span a December → January year boundary.
+2-digit transaction years are expanded to the current century (e.g. `26 → 2026`). This correctly handles statements that span a December → January year boundary.
 
 ## Transaction row regex
 
@@ -148,8 +148,7 @@ Examples: `€ -42,50` · `€ 1.234,56` · `€ 100,00`
 - Export-range header: `Month D, YYYY` (English month name, e.g. `January 1, 2026`)
 - Transaction row dates: `dd.mm.yy` (2-digit year, e.g. `15.04.26`)
 
-The parser uses the first 4-digit year found in the PDF as a century anchor to expand
-2-digit years. This correctly handles statements that span a December → January boundary.
+2-digit transaction years are expanded to the current century (e.g. `26 → 2026`). This correctly handles statements that span a December → January boundary.
 
 ## Transaction row regex
 
