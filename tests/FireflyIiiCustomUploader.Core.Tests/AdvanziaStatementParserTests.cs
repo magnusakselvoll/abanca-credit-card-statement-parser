@@ -8,7 +8,7 @@ public class AdvanziaStatementParserTests
 {
     private readonly AdvanziaStatementParser _parser = new();
 
-    // Synthetic header lines: export-range gives the 4-digit year anchor; column header triggers CanParse.
+    // Synthetic header lines: column header triggers CanParse; export-range line is ignored by Parse.
     private static readonly string[] HeaderLines =
     [
         "Exported date range: January 1, 2025 - January 31, 2025",
@@ -85,8 +85,9 @@ public class AdvanziaStatementParserTests
     }
 
     [TestMethod]
-    public void Parse_YearFromExportHeader()
+    public void Parse_TwoDigitYear_ExpandedToCurrentCentury()
     {
+        // A statement spanning Dec/Jan — both years still resolve correctly within the current century.
         var lines = new List<string>
         {
             "Exported date range: December 1, 2024 - December 31, 2024",

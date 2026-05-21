@@ -103,7 +103,7 @@ Two-project layout:
 ### PDF parsing notes
 
 - Only data from inside the PDF is used — filenames are never parsed.
-- Year disambiguation: transaction dates use `dd-mm-yy` (2-digit year). The parser scans for the first `dd-mm-yyyy` date in the PDF (e.g., FECHA COBRO on page 1) to derive the century prefix.
+- Year expansion: transaction dates use `dd-mm-yy` (2-digit year), expanded to the current century (e.g. `26 → 2026`). This handles the common December → January boundary within a single century.
 - The `TOTAL OPERACIONES TARJETA` line signals end-of-transactions and provides the stated total for verification. It also serves as the `CanParse` sniff marker for `AbancaStatementParser`.
 
 ### Idempotency

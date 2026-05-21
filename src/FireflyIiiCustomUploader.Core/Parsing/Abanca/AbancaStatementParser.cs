@@ -8,10 +8,6 @@ public class AbancaStatementParser : IStatementParser
 {
     public string FormatId => "abanca-visa";
 
-    // Matches a 4-digit year inside a dd-mm-yyyy date, used to derive the century prefix.
-    private static readonly Regex FourDigitYearRegex =
-        new(@"\b\d{2}-\d{2}-(\d{4})\b", RegexOptions.Compiled);
-
     // Matches a transaction row: [optional non-digit junk] dd-mm-yy  cardCode  description  amount  D/H
     // The leading [^0-9]* handles side-label characters (e.g. "K" from "Mod. KQ0") that PdfPig
     // places on the same Y coordinate as the first transaction row.
@@ -29,7 +25,6 @@ public class AbancaStatementParser : IStatementParser
 
     public CardStatement Parse(IReadOnlyList<string> lines)
     {
-        int centuryPrefix = FindCenturyPrefix(lines);
         var transactions = new List<CardTransaction>();
         decimal? statedTotal = null;
 
@@ -52,7 +47,7 @@ public class AbancaStatementParser : IStatementParser
             var amountStr = match.Groups[4].Value;
             var sign = match.Groups[5].Value;
 
-            var date = ExpandTransactionDate(dateStr, centuryPrefix);
+            var date = ExpandTransactionDate(dateStr);
             var amount = ParseSpanishDecimal(amountStr);
             var isDebit = sign == "D";
 
@@ -62,23 +57,12 @@ public class AbancaStatementParser : IStatementParser
         return new CardStatement(transactions, statedTotal);
     }
 
-    private static int FindCenturyPrefix(IReadOnlyList<string> lines)
-    {
-        foreach (var line in lines)
-        {
-            var match = FourDigitYearRegex.Match(line);
-            if (match.Success)
-                return int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) / 100;
-        }
-        return 20;
-    }
-
-    private static DateOnly ExpandTransactionDate(string ddMmYy, int centuryPrefix)
+    private static DateOnly ExpandTransactionDate(string ddMmYy)
     {
         var parts = ddMmYy.Split('-');
         int day = int.Parse(parts[0], CultureInfo.InvariantCulture);
         int month = int.Parse(parts[1], CultureInfo.InvariantCulture);
-        int year = centuryPrefix * 100 + int.Parse(parts[2], CultureInfo.InvariantCulture);
+        int year = DateTime.Today.Year / 100 * 100 + int.Parse(parts[2], CultureInfo.InvariantCulture);
         return new DateOnly(year, month, day);
     }
 
