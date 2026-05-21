@@ -21,7 +21,9 @@ internal static class UploadEndpoints
     {
         try
         {
-            var accounts = await fireflyClient.GetAssetAccountsAsync(cancellationToken);
+            var accounts = (await fireflyClient.GetAssetAccountsAsync(cancellationToken))
+                .OrderBy(a => a.Attributes.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
             return Results.Content(Html.UploadForm(accounts, null), "text/html");
         }
         catch (Exception ex)
