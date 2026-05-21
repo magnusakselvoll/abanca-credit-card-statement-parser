@@ -1,11 +1,10 @@
 services:
-  parser:
-    image: ghcr.io/magnusakselvoll/abanca-credit-card-statement-parser:latest
-    volumes:
-      - ./input:/data/input:ro
-      - ./output:/data/output
-    # Env vars are baked into the image as defaults; override here if needed:
-    # environment:
-    #   AbancaCardParser__InputDir: /data/input
-    #   AbancaCardParser__OutputDir: /data/output
-    #   AbancaCardParser__LogDir: /data/output
+  uploader:
+    image: ghcr.io/magnusakselvoll/firefly-iii-custom-uploader:latest
+    ports:
+      - "8080:8080"
+    environment:
+      FireflyIiiCustomUploader__FireflyIiiUrl: "http://firefly:8080"
+      FireflyIiiCustomUploader__FireflyIiiToken: "your-personal-access-token"
+      # FireflyIiiCustomUploader__WebListenUrl: "http://0.0.0.0:8080"
+      # FireflyIiiCustomUploader__RunTagPrefix: "ffcu-upload"

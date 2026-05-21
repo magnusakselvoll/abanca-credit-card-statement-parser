@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Version>0.1.0</Version>
+    <Authors>Magnus Akselvoll</Authors>
+    <Description>Web app: upload credit-card statement PDFs, review parsed transactions, and upload them directly to Firefly III.</Description>
+    <RepositoryUrl>https://github.com/magnusakselvoll/firefly-iii-custom-uploader</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ContainerRepository>magnusakselvoll/firefly-iii-custom-uploader</ContainerRepository>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
+    <ContainerUser>1000</ContainerUser>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+    <ContainerRuntimeIdentifiers>linux-x64;linux-arm64</ContainerRuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <ContainerEnvironmentVariable Include="ASPNETCORE_URLS" Value="http://0.0.0.0:8080" />
+    <ContainerLabel Include="org.opencontainers.image.source" Value="https://github.com/magnusakselvoll/firefly-iii-custom-uploader" />
+    <ContainerLabel Include="org.opencontainers.image.title" Value="firefly-iii-custom-uploader" />
+    <ContainerLabel Include="org.opencontainers.image.description" Value="Upload credit-card statement PDFs and import transactions directly into Firefly III." />
+    <ContainerLabel Include="org.opencontainers.image.licenses" Value="MIT" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../FireflyIiiCustomUploader.Core/FireflyIiiCustomUploader.Core.csproj" />
+  </ItemGroup>
+</Project>

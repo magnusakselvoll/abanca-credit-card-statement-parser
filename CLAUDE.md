@@ -55,46 +55,91 @@ When closing issues via PR, consider updating:
 ## Build Commands
 
 ```bash
-dotnet build                                   # Build all projects
-dotnet test                                    # Run all tests
-dotnet run --project src/AbancaCardParser.Cli  # Run the parser (uses ./input, ./output defaults)
+dotnet build                                            # Build all projects
+dotnet test                                             # Run all tests
+dotnet run --project src/FireflyIiiCustomUploader.Web   # Run the web app (listens on http://localhost:8080)
 
-# Override input/output via env vars:
-AbancaCardParser__InputDir=./local-test-data \
-  AbancaCardParser__OutputDir=./local-test-data/output \
-  AbancaCardParser__LogDir=./local-test-data/output \
-  dotnet run --project src/AbancaCardParser.Cli
+# Override config via env vars:
+FireflyIiiCustomUploader__FireflyIiiUrl=http://firefly:8080 \
+  FireflyIiiCustomUploader__FireflyIiiToken=my-token \
+  dotnet run --project src/FireflyIiiCustomUploader.Web
 ```
 
 ## Architecture
 
 Two-project layout:
 
-- **AbancaCardParser.Core** (`src/AbancaCardParser.Core/`): PDF text extraction, statement parsing, CSV writing. No dependencies on the CLI.
-- **AbancaCardParser.Cli** (`src/AbancaCardParser.Cli/`): Console executable. Reads configuration, loops over PDF files, calls Core, writes output.
+- **FireflyIiiCustomUploader.Core** (`src/FireflyIiiCustomUploader.Core/`): PDF text extraction, statement parsing, Firefly III HTTP client, upload planning/execution. No web dependencies.
+- **FireflyIiiCustomUploader.Web** (`src/FireflyIiiCustomUploader.Web/`): ASP.NET Core minimal-API web host. Serves the upload form, review page, and submit action.
 
 ### Key types (in Core)
 
-- `CardTransaction` (Models): date, description, amount, IsDebit, IsAmortizacionDeuda
-- `CardStatement` (Models): list of transactions + optional stated total from TOTAL OPERACIONES TARJETA line
-- `IPdfTextExtractor` (Parsing): interface — extracts text lines from a PDF stream
-- `PdfPigTextExtractor` (Parsing): PdfPig implementation — groups words by Y-coordinate per page
-- `StatementTextParser` (Parsing): converts extracted text lines → CardStatement using regex matching
-- `BankCsvWriter` (Output): renders a CardStatement to the Abanca bank-account CSV format
+**Models**
+- `CardTransaction` — date, description, amount, IsDebit
+- `CardStatement` — list of transactions + optional stated total from TOTAL OPERACIONES TARJETA line
+
+**Parsing**
+- `IPdfTextExtractor` — extracts text lines from a PDF stream
+- `PdfPigTextExtractor` — PdfPig implementation; groups words by Y-coordinate per page
+- `IStatementParser` — `{ FormatId, CanParse(lines), Parse(lines) }` — one implementation per bank/format
+- `StatementParserRegistry` — tries each registered parser's `CanParse`; returns the first match
+- `Parsing/Abanca/AbancaStatementParser` — parses Abanca VISA Clásica statements; sniffs on "TOTAL OPERACIONES TARJETA"
+
+**Firefly III**
+- `IFireflyIiiClient` / `FireflyIiiClient` — paginated GET accounts, GET transactions, POST transaction
+- `LenientDateOnlyConverter` — handles Firefly III's ISO datetime strings as well as plain `yyyy-MM-dd`
+
+**Sync**
+- `ExternalIdFactory` — deterministic `external_id = "{formatId}:{sha1(date|amountCents|D/H|normalizedDescription)}"` for idempotency
+- `UploadPlan` / `UploadPlanItem` / `UploadDecision` — plan record with per-item decisions (Create / SkipDuplicate / SkipAmortization)
+- `UploadPlanner.BuildPlanAsync` — queries Firefly III for existing external_ids in the statement's date range; assigns decisions
+- `UploadExecutor.ExecuteAsync` — creates `Create` items that the user included; stamps each with a run tag; returns `UploadResult`
+- `TransactionMapper.ToTransactionSplit` — maps `CardTransaction` → Firefly `TransactionSplit` (debit=withdrawal, credit=deposit)
+
+**Options**
+- `FireflyIiiCustomUploaderOptions` — FireflyIiiUrl, FireflyIiiToken, WebListenUrl, RunTagPrefix; bound from config section `FireflyIiiCustomUploader`
 
 ### PDF parsing notes
 
 - Only data from inside the PDF is used — filenames are never parsed.
-- Year disambiguation: transaction dates in the PDF use `dd-mm-yy` (2-digit year). The parser scans for the first `dd-mm-yyyy` date in the PDF (e.g., FECHA COBRO on page 1) to derive the century prefix.
-- The `TOTAL OPERACIONES TARJETA` line signals end-of-transactions and provides the stated total for verification. The stated total equals sum(D) − sum(H excluding AMORTIZACION DEUDA).
+- Year disambiguation: transaction dates use `dd-mm-yy` (2-digit year). The parser scans for the first `dd-mm-yyyy` date in the PDF (e.g., FECHA COBRO on page 1) to derive the century prefix.
+- The `TOTAL OPERACIONES TARJETA` line signals end-of-transactions and provides the stated total for verification. It also serves as the `CanParse` sniff marker for `AbancaStatementParser`.
+
+### AMORTIZACION DEUDA
+
+Lines whose description starts with "AMORTIZACION DEUDA" are card-debt repayment entries. Firefly III models these as transfers between accounts, but the source account is not in the PDF. The planner assigns them `SkipAmortization`; the UI shows them pre-unchecked and disabled so the user is aware they were omitted.
+
+### Idempotency
+
+`UploadPlanner` always queries Firefly III for existing transactions in the statement's date range on the selected asset account, collecting every `external_id` found. Items whose synthetic `external_id` already exists get `SkipDuplicate`. The submit handler additionally validates that only items with decision `Create` are accepted, so even hand-crafted POSTs cannot force a duplicate.
+
+### Web flow
+
+1. `GET /` — fetches asset accounts from Firefly III, renders upload form.
+2. `POST /upload` — extracts PDF text, finds parser, parses statement, builds `UploadPlan` (queries Firefly III for dedup), stores in `ReviewState` singleton with a 15-min TTL, redirects to `/preview/{token}`.
+3. `GET /preview/{token}` — renders the transaction table with checkboxes (disabled for SkipDuplicate/SkipAmortization).
+4. `POST /submit` — reads form, re-validates included indices, calls `UploadExecutor`, renders result page.
+5. `GET /download-csv/{token}` — uses `BankCsvWriter` to produce a downloadable CSV of all parsed transactions.
+
+HTML is rendered via raw-string interpolation in `Web/Html.cs` — no JS framework, no template engine. Forms use plain POST. Checkboxes have `name="include"` + `value="{index}"` so unchecked rows simply absent from the POST body.
+
+### Adding a new statement format
+
+1. Create a parser class in `src/FireflyIiiCustomUploader.Core/Parsing/<BankName>/` implementing `IStatementParser`.
+2. Register it as `services.AddSingleton<IStatementParser, YourParser>()` in `ServiceCollectionExtensions.AddFireflyIiiCustomUploader`.
+
+The registry tries parsers in registration order.
 
 ## Tech Stack
 
 - **Language/Runtime**: C# / .NET 10
+- **Web host**: ASP.NET Core (`Microsoft.NET.Sdk.Web`, Kestrel, minimal APIs)
 - **PDF parsing**: PdfPig (MIT)
+- **HTTP resilience**: Polly via `Microsoft.Extensions.Http.Resilience`
 - **Configuration**: Microsoft.Extensions.Configuration (JSON + Environment Variables)
-- **Logging**: Microsoft.Extensions.Logging (console)
+- **Logging**: Microsoft.Extensions.Logging (console, from ASP.NET Core host)
 - **Testing**: MSTest
+- **Deployment**: Docker via .NET SDK container publish (`dotnet publish -t:PublishContainer`) — no Dockerfile needed; uses `mcr.microsoft.com/dotnet/aspnet:10.0` base image
 
 ## Dependency Policy
 
@@ -112,27 +157,21 @@ Minimize external dependencies. Only add well-established, widely-used libraries
 
 ## Test Classification
 
-All tests in this repo are unit tests. No `[TestCategory("Integration")]` attribute should be needed — tests use only synthetic in-process data (no real PDFs, no external resources).
+All tests in this repo are unit tests. No `[TestCategory("Integration")]` attribute should be needed — tests use only synthetic in-process data (no real PDFs, no real Firefly III).
 
 ## Configuration
 
 | Key | Env var | Default | Description |
 |-----|---------|---------|-------------|
-| `AbancaCardParser:InputDir` | `AbancaCardParser__InputDir` | `./input` | Directory containing input PDF files |
-| `AbancaCardParser:OutputDir` | `AbancaCardParser__OutputDir` | `./output` | Directory for output CSV files |
-| `AbancaCardParser:LogDir` | `AbancaCardParser__LogDir` | `./output` | Directory for per-file log files |
+| `FireflyIiiCustomUploader:FireflyIiiUrl` | `FireflyIiiCustomUploader__FireflyIiiUrl` | *(required)* | Base URL of the Firefly III instance |
+| `FireflyIiiCustomUploader:FireflyIiiToken` | `FireflyIiiCustomUploader__FireflyIiiToken` | *(required)* | Firefly III personal access token |
+| `FireflyIiiCustomUploader:WebListenUrl` | `FireflyIiiCustomUploader__WebListenUrl` | `http://0.0.0.0:8080` | Internal Kestrel bind URL |
+| `FireflyIiiCustomUploader:RunTagPrefix` | `FireflyIiiCustomUploader__RunTagPrefix` | `ffcu-upload` | Prefix for the per-upload Firefly III run tag |
 
 ## Running via Docker Compose
 
 ```bash
-docker compose run --rm parser
+docker compose up -d
 ```
 
-Example cron entry:
-```cron
-*/15 * * * * cd /path/to/abanca-credit-card-statement-parser && /usr/local/bin/docker compose run --rm parser >> /var/log/abanca-parser.log 2>&1
-```
-
-## Idempotency
-
-The tool skips any PDF that already has a `.pdf.success.log` in the log directory. To reprocess a file, delete its `.success.log`. Files with only an `.error.log` are retried on the next run.
+Then open `http://localhost:8080`. The container exposes port 8080.
