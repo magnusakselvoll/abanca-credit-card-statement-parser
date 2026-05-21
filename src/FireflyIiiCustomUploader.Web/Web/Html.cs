@@ -115,7 +115,7 @@ internal static class Html
             var (rowClass, statusText, checkboxAttrs) = item.Decision switch
             {
                 UploadDecision.Create => ("tx-create", "Will import", "checked"),
-                UploadDecision.SkipDuplicate => ("tx-skip", "Already in Firefly", "disabled"),
+                UploadDecision.SkipDuplicate => ("tx-skip", "Already in Firefly", ""),
                 _ => ("", "Unknown", "disabled"),
             };
             var direction = item.Transaction.IsDebit ? "Debit" : "Credit";
