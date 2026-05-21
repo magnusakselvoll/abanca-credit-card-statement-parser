@@ -2,11 +2,13 @@
   <ItemGroup>
     <!-- PDF parsing -->
     <PackageVersion Include="PdfPig" Version="0.1.14" />
-    <!-- Configuration -->
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.7" />
-    <!-- Logging -->
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.7" />
+    <!-- HTTP / resilience -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
+    <!-- DI / options / logging abstractions (used in Core) -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.8" />
     <!-- Testing -->
     <PackageVersion Include="MSTest" Version="4.2.2" />
   </ItemGroup>

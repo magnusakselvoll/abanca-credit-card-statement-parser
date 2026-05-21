@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/FireflyIiiCustomUploader.Core/FireflyIiiCustomUploader.Core.csproj" />
+  <Project Path="src/FireflyIiiCustomUploader.Web/FireflyIiiCustomUploader.Web.csproj" />
+  <Project Path="tests/FireflyIiiCustomUploader.Core.Tests/FireflyIiiCustomUploader.Core.Tests.csproj" />
+</Solution>

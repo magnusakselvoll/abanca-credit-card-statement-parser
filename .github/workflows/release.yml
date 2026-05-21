@@ -35,7 +35,7 @@ jobs:
 
       - name: Push versioned image
         run: |
-          dotnet publish src/AbancaCardParser.Cli \
+          dotnet publish src/FireflyIiiCustomUploader.Web \
             -c Release \
             /t:PublishContainer \
             /p:ContainerRegistry=ghcr.io \
@@ -43,7 +43,7 @@ jobs:
 
       - name: Push latest image
         run: |
-          dotnet publish src/AbancaCardParser.Cli \
+          dotnet publish src/FireflyIiiCustomUploader.Web \
             -c Release \
             /t:PublishContainer \
             /p:ContainerRegistry=ghcr.io \
