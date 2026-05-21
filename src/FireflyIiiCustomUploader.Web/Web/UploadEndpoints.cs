@@ -11,7 +11,7 @@ internal static class UploadEndpoints
     internal static void Map(WebApplication app)
     {
         app.MapGet("/", GetUploadForm);
-        app.MapPost("/upload", PostUpload);
+        app.MapPost("/upload", PostUpload).DisableAntiforgery();
         app.MapGet("/download-csv/{token}", GetDownloadCsv);
     }
 
