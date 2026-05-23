@@ -7,6 +7,8 @@ namespace FireflyIiiCustomUploader.Core.Parsing.Advanzia;
 public class AdvanziaStatementParser : IStatementParser
 {
     public string FormatId => "advanzia";
+    public string DisplayName => "Advanzia credit card extract";
+    public string? AccountNameHint => "advanzia.*credit";
 
     // Matches a transaction row: dd.mm.yy  description  category  €  [-]amount
     // Group 1 = date (dd.mm.yy), Group 2 = description (non-greedy, merchant text),

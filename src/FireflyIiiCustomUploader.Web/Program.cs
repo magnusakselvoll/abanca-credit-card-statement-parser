@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddFireflyIiiCustomUploader(builder.Configuration);
 builder.Services.AddSingleton<IPdfTextExtractor, FireflyIiiCustomUploader.Core.Parsing.PdfPigTextExtractor>();
 builder.Services.AddSingleton<ReviewState>();
+builder.Services.AddSingleton<PendingUploadStore>();
 
 var app = builder.Build();
 

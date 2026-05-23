@@ -164,4 +164,18 @@ public class AdvanziaStatementParserTests
         var lines = new List<string> { "Some random PDF content", "No relevant marker here" };
         Assert.IsFalse(_parser.CanParse(lines));
     }
+
+    [TestMethod]
+    public void DisplayName_IsExpected()
+    {
+        Assert.AreEqual("Advanzia credit card extract", _parser.DisplayName);
+    }
+
+    [TestMethod]
+    public void AccountNameHint_MatchesAdvanziaCreditAccounts()
+    {
+        Assert.IsNotNull(_parser.AccountNameHint);
+        Assert.IsTrue(System.Text.RegularExpressions.Regex.IsMatch(
+            "Advanzia Mastercard credit", _parser.AccountNameHint, System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+    }
 }

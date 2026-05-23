@@ -7,6 +7,8 @@ namespace FireflyIiiCustomUploader.Core.Parsing.Abanca;
 public class AbancaStatementParser : IStatementParser
 {
     public string FormatId => "abanca-visa";
+    public string DisplayName => "Abanca credit card statement";
+    public string? AccountNameHint => "abanca.*credit";
 
     // Matches a transaction row: [optional non-digit junk] dd-mm-yy  cardCode  description  amount  D/H
     // The leading [^0-9]* handles side-label characters (e.g. "K" from "Mod. KQ0") that PdfPig
