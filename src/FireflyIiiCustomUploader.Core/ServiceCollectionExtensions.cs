@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         .AddResilienceHandler("fireflyiii", ConfigureResiliencePipeline);
 
         services.AddSingleton<IStatementParser, AbancaStatementParser>();
+        services.AddSingleton<IStatementParser, AbancaWebCopyStatementParser>();
         services.AddSingleton<IStatementParser, AdvanziaStatementParser>();
         services.AddSingleton<StatementParserRegistry>();
         services.AddTransient<UploadPlanner>();

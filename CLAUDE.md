@@ -83,7 +83,8 @@ Two-project layout:
 - `PdfPigTextExtractor` — PdfPig implementation; groups words by Y-coordinate per page
 - `IStatementParser` — `{ FormatId, DisplayName, AccountNameHint, CanParse(lines), Parse(lines) }` — one implementation per bank/format; `DisplayName` is shown in the format dropdown; `AccountNameHint` is a regex matched case-insensitively against Firefly account names to pre-select the best-guess account
 - `StatementParserRegistry` — `FindParser(lines)` tries each `CanParse` in registration order; `GetParser(formatId)` looks up by id; `Parsers` exposes the full list
-- `Parsing/Abanca/AbancaStatementParser` — parses Abanca VISA Clásica statements; sniffs on "TOTAL OPERACIONES TARJETA"
+- `Parsing/Abanca/AbancaStatementParser` — parses Abanca VISA Clásica PDF statements; sniffs on "TOTAL OPERACIONES TARJETA"; `FormatId = "abanca-visa"`
+- `Parsing/Abanca/AbancaWebCopyStatementParser` — parses tab-separated rows copied from Abanca's web banking UI; sniffs on a valid data row (TIT. | dd/MM/yyyy | … | N,NN EUR); negative amounts = debit; TIPO OPERACIÓN written to `Category` (stored in Firefly `notes`); `FormatId = "abanca-web-copy"`; reuses `AbancaStatementParser.ParseSpanishDecimal`
 - `Parsing/Advanzia/AdvanziaStatementParser` — parses Advanzia card exports; sniffs on column header containing "Counterparty" and "Category"; `FormatId = "advanzia"`; negative amounts = debit, positive = credit; category token written to Firefly `notes` as `"Category: <value>"`
 
 **Firefly III**
@@ -113,8 +114,8 @@ Two-project layout:
 
 ### Web flow
 
-1. `GET /` — renders the file-upload form (no Firefly III call needed here).
-2. `POST /upload` — extracts PDF text lines, auto-detects best-guess format via `FindParser` (may be null), stores `PendingUpload(lines, detectedFormatId)` in `PendingUploadStore` with a 15-min TTL, redirects to `/select/{token}`.
+1. `GET /` — renders the upload form: a file-picker section (PDF) and a textarea section ("paste statement text"), each with its own submit button (no Firefly III call needed here).
+2. `POST /upload` — accepts either an uploaded `file` (PDF → `IPdfTextExtractor.ExtractLines`) or a `pastedText` form field (split on newlines). Produces `IReadOnlyList<string> lines` via either path, auto-detects best-guess format via `FindParser` (may be null), stores `PendingUpload(lines, detectedFormatId)` in `PendingUploadStore` with a 15-min TTL, redirects to `/select/{token}`.
 3. `GET /select/{token}` — loads the pending upload; fetches asset accounts from Firefly III; pre-selects format (detected) and account (via `BestGuessAccount.Match` using the detected parser's `AccountNameHint`); renders format + account dropdowns.
 4. `POST /select` — reads `token`, `formatId`, `accountId`; loads pending lines (non-destructive, allows retry); looks up parser by `formatId`; parses lines; builds `UploadPlan` (queries Firefly III for dedup); stores plan in `ReviewState` with a 15-min TTL, redirects to `/preview/{planToken}`. Re-renders the selection screen with an error on bad format, parse failure, or zero transactions.
 5. `GET /preview/{token}` — renders the transaction table with checkboxes (disabled for SkipDuplicate).

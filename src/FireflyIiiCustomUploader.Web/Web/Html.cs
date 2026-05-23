@@ -29,7 +29,8 @@ internal static class Html
             .banner-success { background: #d4edda; color: #155724; }
             .banner-error { background: #f8d7da; color: #721c24; }
             label { font-weight: 600; display: block; margin-bottom: .3rem; }
-            input[type=file], select { padding: .4rem .6rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-width: 500px; box-sizing: border-box; margin-bottom: 1rem; }
+            input[type=file], select, textarea { padding: .4rem .6rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-width: 500px; box-sizing: border-box; margin-bottom: 1rem; }
+            textarea { font-family: ui-monospace, monospace; min-height: 8rem; }
             .field { margin-bottom: 1rem; }
             .actions { margin-top: 1.5rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
             .tx-skip { color: #888; }
@@ -58,7 +59,18 @@ internal static class Html
             "<label for=\"file\">Statement PDF</label>" +
             "<input type=\"file\" id=\"file\" name=\"file\" accept=\".pdf\" required>" +
             "</div>" +
-            "<div class=\"actions\"><button type=\"submit\" class=\"btn\">Upload →</button></div>" +
+            "<div class=\"actions\"><button type=\"submit\" class=\"btn\">Upload file →</button></div>" +
+            "</form>");
+
+        sb.Append("<h2>Or paste statement text</h2>");
+        sb.Append(
+            "<form method=\"post\" action=\"/upload\" enctype=\"multipart/form-data\">" +
+            "<div class=\"field\">" +
+            "<label for=\"pastedText\">Pasted statement rows</label>" +
+            "<textarea id=\"pastedText\" name=\"pastedText\" rows=\"10\" " +
+            "placeholder=\"Paste copied rows here\"></textarea>" +
+            "</div>" +
+            "<div class=\"actions\"><button type=\"submit\" class=\"btn\">Process pasted text →</button></div>" +
             "</form>");
 
         return Page("Upload", sb.ToString());

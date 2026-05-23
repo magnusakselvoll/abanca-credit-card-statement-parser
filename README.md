@@ -1,16 +1,17 @@
 # firefly-iii-custom-uploader
 
-Web app that parses credit-card statement PDFs, lets you review the parsed transactions, and uploads them directly to [Firefly III](https://www.firefly-iii.org/).
+Web app that parses credit-card statements, lets you review the parsed transactions, and uploads them directly to [Firefly III](https://www.firefly-iii.org/). Statements can be uploaded as a PDF file or pasted as plain text copied from your bank's web UI.
 
 [![CI](https://github.com/magnusakselvoll/firefly-iii-custom-uploader/actions/workflows/ci.yml/badge.svg)](https://github.com/magnusakselvoll/firefly-iii-custom-uploader/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Supported statement formats
 
-| Format | Description |
-|--------|-------------|
-| Abanca VISA Clásica | Spanish-locale PDF statements in the OpenText Exstream format |
-| Advanzia card | PDF exports from the Advanzia card portal; Advanzia's category is stored in the Firefly III notes field |
+| Format | Input | Description |
+|--------|-------|-------------|
+| Abanca VISA Clásica | PDF | Spanish-locale PDF statements in the OpenText Exstream format |
+| Abanca credit card web copy | Paste | Tab-separated rows copied from Abanca's web banking UI; TIPO OPERACIÓN is stored in the Firefly III notes field |
+| Advanzia card | PDF | PDF exports from the Advanzia card portal; Advanzia's category is stored in the Firefly III notes field |
 
 See [docs/pdf-format.md](docs/pdf-format.md) for the detailed format specifications.
 
@@ -18,9 +19,9 @@ Adding a new format is straightforward — see [Adding a new statement format](#
 
 ## How it works
 
-1. Open the web UI and upload a PDF. The app tries to auto-detect the statement format.
+1. Open the web UI and either upload a PDF **or** paste tab-separated rows copied from your bank's web UI. The app tries to auto-detect the statement format.
 2. A selection screen shows a **format** dropdown and an **account** dropdown, each pre-selected with the best guess. Change either if needed, then click **Continue**.
-3. The app parses the PDF and shows you a table of transactions. Rows already present in Firefly III are shown as "Already in Firefly" and cannot be re-submitted. Rows you want to skip can be unchecked.
+3. The app parses the statement and shows you a table of transactions. Rows already present in Firefly III are shown as "Already in Firefly" and cannot be re-submitted. Rows you want to skip can be unchecked.
 4. Click **Submit** — transactions are created in Firefly III with a run label (`ffcu-upload-<timestamp>`) for easy bulk rollback.
 
 > **Idempotency:** Every transaction is assigned a deterministic `external_id`. Re-uploading the same PDF, or uploading overlapping statements, only creates the transactions that don't already exist in Firefly III.
