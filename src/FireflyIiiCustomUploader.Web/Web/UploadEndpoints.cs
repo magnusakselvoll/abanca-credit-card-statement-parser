@@ -22,23 +22,33 @@ internal static class UploadEndpoints
 
     private static async Task<IResult> PostUpload(
         IFormFile? file,
+        [FromForm] string? pastedText,
         IPdfTextExtractor textExtractor,
         StatementParserRegistry parserRegistry,
         PendingUploadStore pendingStore,
         CancellationToken cancellationToken)
     {
-        if (file is null || file.Length == 0)
-            return Results.Content(Html.UploadForm("No file uploaded."), "text/html");
-
         IReadOnlyList<string> lines;
-        try
+
+        if (file is not null && file.Length > 0)
         {
-            using var stream = file.OpenReadStream();
-            lines = textExtractor.ExtractLines(stream);
+            try
+            {
+                using var stream = file.OpenReadStream();
+                lines = textExtractor.ExtractLines(stream);
+            }
+            catch (Exception ex)
+            {
+                return Results.Content(Html.UploadForm($"Could not read PDF: {ex.Message}"), "text/html");
+            }
         }
-        catch (Exception ex)
+        else if (!string.IsNullOrWhiteSpace(pastedText))
         {
-            return Results.Content(Html.UploadForm($"Could not read PDF: {ex.Message}"), "text/html");
+            lines = pastedText.Replace("\r\n", "\n").Split('\n');
+        }
+        else
+        {
+            return Results.Content(Html.UploadForm("Upload a PDF or paste statement text."), "text/html");
         }
 
         var detected = parserRegistry.FindParser(lines);
