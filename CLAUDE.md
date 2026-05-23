@@ -81,8 +81,8 @@ Two-project layout:
 **Parsing**
 - `IPdfTextExtractor` — extracts text lines from a PDF stream
 - `PdfPigTextExtractor` — PdfPig implementation; groups words by Y-coordinate per page
-- `IStatementParser` — `{ FormatId, CanParse(lines), Parse(lines) }` — one implementation per bank/format
-- `StatementParserRegistry` — tries each registered parser's `CanParse`; returns the first match
+- `IStatementParser` — `{ FormatId, DisplayName, AccountNameHint, CanParse(lines), Parse(lines) }` — one implementation per bank/format; `DisplayName` is shown in the format dropdown; `AccountNameHint` is a regex matched case-insensitively against Firefly account names to pre-select the best-guess account
+- `StatementParserRegistry` — `FindParser(lines)` tries each `CanParse` in registration order; `GetParser(formatId)` looks up by id; `Parsers` exposes the full list
 - `Parsing/Abanca/AbancaStatementParser` — parses Abanca VISA Clásica statements; sniffs on "TOTAL OPERACIONES TARJETA"
 - `Parsing/Advanzia/AdvanziaStatementParser` — parses Advanzia card exports; sniffs on column header containing "Counterparty" and "Category"; `FormatId = "advanzia"`; negative amounts = debit, positive = credit; category token written to Firefly `notes` as `"Category: <value>"`
 
@@ -96,6 +96,7 @@ Two-project layout:
 - `UploadPlanner.BuildPlanAsync` — queries Firefly III for existing external_ids in the statement's date range; assigns decisions
 - `UploadExecutor.ExecuteAsync` — creates `Create` items that the user included; stamps each with a run tag; returns `UploadResult`
 - `TransactionMapper.ToTransactionSplit` — maps `CardTransaction` → Firefly `TransactionSplit` (debit=withdrawal, credit=deposit); populates `notes` from `CardTransaction.Category` as `"Category: <value>"` when set
+- `BestGuessAccount.Match(accounts, hintRegex)` — returns the first account whose name matches the regex (IgnoreCase); returns null when hint is null or no match
 
 **Options**
 - `FireflyIiiCustomUploaderOptions` — FireflyIiiUrl, FireflyIiiToken, WebListenUrl, RunTagPrefix; bound from config section `FireflyIiiCustomUploader`
@@ -112,20 +113,27 @@ Two-project layout:
 
 ### Web flow
 
-1. `GET /` — fetches asset accounts from Firefly III, renders upload form.
-2. `POST /upload` — extracts PDF text, finds parser, parses statement, builds `UploadPlan` (queries Firefly III for dedup), stores in `ReviewState` singleton with a 15-min TTL, redirects to `/preview/{token}`.
-3. `GET /preview/{token}` — renders the transaction table with checkboxes (disabled for SkipDuplicate).
-4. `POST /submit` — reads form, re-validates included indices, calls `UploadExecutor`, renders result page.
-5. `GET /download-csv/{token}` — uses `BankCsvWriter` to produce a downloadable CSV of all parsed transactions.
+1. `GET /` — renders the file-upload form (no Firefly III call needed here).
+2. `POST /upload` — extracts PDF text lines, auto-detects best-guess format via `FindParser` (may be null), stores `PendingUpload(lines, detectedFormatId)` in `PendingUploadStore` with a 15-min TTL, redirects to `/select/{token}`.
+3. `GET /select/{token}` — loads the pending upload; fetches asset accounts from Firefly III; pre-selects format (detected) and account (via `BestGuessAccount.Match` using the detected parser's `AccountNameHint`); renders format + account dropdowns.
+4. `POST /select` — reads `token`, `formatId`, `accountId`; loads pending lines (non-destructive, allows retry); looks up parser by `formatId`; parses lines; builds `UploadPlan` (queries Firefly III for dedup); stores plan in `ReviewState` with a 15-min TTL, redirects to `/preview/{planToken}`. Re-renders the selection screen with an error on bad format, parse failure, or zero transactions.
+5. `GET /preview/{token}` — renders the transaction table with checkboxes (disabled for SkipDuplicate).
+6. `POST /submit` — reads form, re-validates included indices, calls `UploadExecutor`, renders result page.
+7. `GET /download-csv/{token}` — uses `BankCsvWriter` to produce a downloadable CSV of all parsed transactions.
 
 HTML is rendered via raw-string interpolation in `Web/Html.cs` — no JS framework, no template engine. Forms use plain POST. Checkboxes have `name="include"` + `value="{index}"` so unchecked rows simply absent from the POST body.
 
 ### Adding a new statement format
 
-1. Create a parser class in `src/FireflyIiiCustomUploader.Core/Parsing/<BankName>/` implementing `IStatementParser`.
+1. Create a parser class in `src/FireflyIiiCustomUploader.Core/Parsing/<BankName>/` implementing `IStatementParser`. Set:
+   - `FormatId` — stable internal slug (e.g. `"mybank-visa"`).
+   - `DisplayName` — user-facing label shown in the format dropdown (e.g. `"My Bank credit card"`).
+   - `AccountNameHint` — case-insensitive regex matched against Firefly account names to pre-select the best-guess account (e.g. `"mybank.*credit"`; use `null` for no hint).
+   - `CanParse` — content-sniff to identify this format from PDF lines.
+   - `Parse` — produce a `CardStatement` from PDF lines.
 2. Register it as `services.AddSingleton<IStatementParser, YourParser>()` in `ServiceCollectionExtensions.AddFireflyIiiCustomUploader`.
 
-The registry tries parsers in registration order.
+The registry tries parsers in `CanParse` order for auto-detection; `GetParser(formatId)` looks up a specific format when the user makes an explicit selection.
 
 ## Tech Stack
 

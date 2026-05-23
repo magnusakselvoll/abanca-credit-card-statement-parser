@@ -9,6 +9,8 @@ public class StatementParserRegistry
         _parsers = parsers.ToList();
     }
 
+    public IReadOnlyList<IStatementParser> Parsers => _parsers;
+
     public IStatementParser? FindParser(IReadOnlyList<string> lines)
     {
         foreach (var parser in _parsers)
@@ -18,4 +20,7 @@ public class StatementParserRegistry
         }
         return null;
     }
+
+    public IStatementParser? GetParser(string formatId) =>
+        _parsers.FirstOrDefault(p => p.FormatId == formatId);
 }

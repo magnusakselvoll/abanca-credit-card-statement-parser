@@ -222,4 +222,18 @@ public class AbancaStatementParserTests
         var lines = new List<string> { "Some random PDF", "No relevant marker here" };
         Assert.IsFalse(_parser.CanParse(lines));
     }
+
+    [TestMethod]
+    public void DisplayName_IsExpected()
+    {
+        Assert.AreEqual("Abanca credit card statement", _parser.DisplayName);
+    }
+
+    [TestMethod]
+    public void AccountNameHint_MatchesAbancaCreditAccounts()
+    {
+        Assert.IsNotNull(_parser.AccountNameHint);
+        Assert.IsTrue(System.Text.RegularExpressions.Regex.IsMatch(
+            "Abanca VISA credit card", _parser.AccountNameHint, System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+    }
 }

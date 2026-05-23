@@ -1,5 +1,6 @@
 using System.Text;
 using FireflyIiiCustomUploader.Core.FireflyIii.Models;
+using FireflyIiiCustomUploader.Core.Parsing;
 using FireflyIiiCustomUploader.Core.Sync;
 
 namespace FireflyIiiCustomUploader.Web.Web;
@@ -43,7 +44,7 @@ internal static class Html
         </html>
         """;
 
-    public static string UploadForm(IReadOnlyList<Account> accounts, string? error)
+    public static string UploadForm(string? error)
     {
         var sb = new StringBuilder();
 
@@ -54,8 +55,47 @@ internal static class Html
         sb.Append(
             "<form method=\"post\" action=\"/upload\" enctype=\"multipart/form-data\">" +
             "<div class=\"field\">" +
-            "<label for=\"account\">Firefly III asset account</label>" +
-            "<select id=\"account\" name=\"accountId\" required>");
+            "<label for=\"file\">Statement PDF</label>" +
+            "<input type=\"file\" id=\"file\" name=\"file\" accept=\".pdf\" required>" +
+            "</div>" +
+            "<div class=\"actions\"><button type=\"submit\" class=\"btn\">Upload →</button></div>" +
+            "</form>");
+
+        return Page("Upload", sb.ToString());
+    }
+
+    public static string SelectForm(
+        string token,
+        IReadOnlyList<IStatementParser> parsers,
+        string? selectedFormatId,
+        IReadOnlyList<Account> accounts,
+        string? selectedAccountId,
+        string? error)
+    {
+        var sb = new StringBuilder();
+
+        if (error is not null)
+            sb.Append($"<div class=\"banner banner-error\">{Encode(error)}</div>");
+
+        sb.Append("<h2>Select format and account</h2>");
+        sb.Append(
+            "<form method=\"post\" action=\"/select\">" +
+            $"<input type=\"hidden\" name=\"token\" value=\"{Encode(token)}\">" +
+            "<div class=\"field\">" +
+            "<label for=\"formatId\">Statement format</label>" +
+            "<select id=\"formatId\" name=\"formatId\" required>");
+
+        foreach (var p in parsers)
+        {
+            var selected = p.FormatId == selectedFormatId ? " selected" : "";
+            sb.Append($"<option value=\"{Encode(p.FormatId)}\"{selected}>{Encode(p.DisplayName)}</option>");
+        }
+
+        sb.Append(
+            "</select></div>" +
+            "<div class=\"field\">" +
+            "<label for=\"accountId\">Firefly III asset account</label>" +
+            "<select id=\"accountId\" name=\"accountId\" required>");
 
         if (accounts.Count == 0)
         {
@@ -68,20 +108,17 @@ internal static class Html
                 var label = a.Attributes.Iban is not null
                     ? $"{a.Attributes.Name} ({a.Attributes.Iban})"
                     : a.Attributes.Name;
-                sb.Append($"<option value=\"{Encode(a.Id)}\">{Encode(label)}</option>");
+                var selected = a.Id == selectedAccountId ? " selected" : "";
+                sb.Append($"<option value=\"{Encode(a.Id)}\"{selected}>{Encode(label)}</option>");
             }
         }
 
         sb.Append(
             "</select></div>" +
-            "<div class=\"field\">" +
-            "<label for=\"file\">Statement PDF</label>" +
-            "<input type=\"file\" id=\"file\" name=\"file\" accept=\".pdf\" required>" +
-            "</div>" +
-            "<div class=\"actions\"><button type=\"submit\" class=\"btn\">Parse →</button></div>" +
+            "<div class=\"actions\"><button type=\"submit\" class=\"btn\">Continue →</button></div>" +
             "</form>");
 
-        return Page("Upload", sb.ToString());
+        return Page("Select format", sb.ToString());
     }
 
     public static string Preview(UploadPlan plan, string token)

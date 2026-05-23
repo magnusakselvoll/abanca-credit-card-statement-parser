@@ -18,9 +18,10 @@ Adding a new format is straightforward — see [Adding a new statement format](#
 
 ## How it works
 
-1. Open the web UI, pick your Firefly III asset account, upload a PDF.
-2. The app parses the PDF and shows you a table of transactions. Rows already present in Firefly III are shown as "Already in Firefly" and cannot be re-submitted. Rows you want to skip can be unchecked.
-3. Click **Submit** — transactions are created in Firefly III with a run label (`ffcu-upload-<timestamp>`) for easy bulk rollback.
+1. Open the web UI and upload a PDF. The app tries to auto-detect the statement format.
+2. A selection screen shows a **format** dropdown and an **account** dropdown, each pre-selected with the best guess. Change either if needed, then click **Continue**.
+3. The app parses the PDF and shows you a table of transactions. Rows already present in Firefly III are shown as "Already in Firefly" and cannot be re-submitted. Rows you want to skip can be unchecked.
+4. Click **Submit** — transactions are created in Firefly III with a run label (`ffcu-upload-<timestamp>`) for easy bulk rollback.
 
 > **Idempotency:** Every transaction is assigned a deterministic `external_id`. Re-uploading the same PDF, or uploading overlapping statements, only creates the transactions that don't already exist in Firefly III.
 
@@ -83,6 +84,8 @@ dotnet test    # all tests are unit tests, no external resources needed
    public class MyBankParser : IStatementParser
    {
        public string FormatId => "mybank-visa";
+       public string DisplayName => "My Bank credit card";
+       public string? AccountNameHint => "mybank.*credit"; // regex matched against Firefly account names
 
        public bool CanParse(IReadOnlyList<string> lines) =>
            lines.Any(l => l.Contains("MY BANK STATEMENT MARKER"));
@@ -97,7 +100,7 @@ dotnet test    # all tests are unit tests, no external resources needed
    services.AddSingleton<IStatementParser, MyBankParser>();
    ```
 
-The registry tries parsers in registration order and uses the first match.
+The registry tries parsers in registration order for auto-detection. `DisplayName` appears in the format dropdown; `AccountNameHint` pre-selects the matching Firefly account (set to `null` for no pre-selection).
 
 ## Formats
 
